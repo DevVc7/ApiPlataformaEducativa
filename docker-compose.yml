@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=sqlserver://sa:YourPassword123@sqlserver:1433;database=educational_platform;trustServerCertificate=true;encrypt=true
+      - JWT_SECRET=your-super-secret-jwt-key
+      - JWT_REFRESH_SECRET=your-refresh-secret
+    depends_on:
+      - sqlserver
+      - redis
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourPassword123
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  ml-service:
+    image: python:3.11-slim
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml-service:/app
+    working_dir: /app
+    command: python -m uvicorn main:app --host 0.0.0.0 --port 8000
+    environment:
+      - PYTHONPATH=/app
+
+volumes:
+  sqlserver_data:
+  redis_data:
